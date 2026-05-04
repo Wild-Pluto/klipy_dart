@@ -33,11 +33,12 @@ class KlipyAdRequestContext {
     this.adDeviceHeight,
     this.adPxRatio,
     this.adIfa,
-    this.adPosition,
-    this.adIframe,
+    this.adPosition = '0',
+    this.adIframe = true,
   });
 
   Map<String, dynamic> toQueryParameters() {
+    final iframeValue = adIframe == null ? null : (adIframe! ? 1 : 0);
     return {
       'customer_id': customerId,
       'ad-min-width': adMinWidth,
@@ -46,16 +47,16 @@ class KlipyAdRequestContext {
       'ad-max-height': adMaxHeight,
       'ad-app-version': adAppVersion,
       'ad-os': adOs,
-      'ad-os-version': adOsVersion,
+      'ad-osv': adOsVersion,
       'ad-model': adModel,
       'ad-language': adLanguage,
       'ad-network': adNetwork,
-      'ad-device-width': adDeviceWidth,
-      'ad-device-height': adDeviceHeight,
+      'ad-device-w': adDeviceWidth,
+      'ad-device-h': adDeviceHeight,
       'ad-pxratio': adPxRatio,
       'ad-ifa': adIfa,
       'ad-position': adPosition,
-      'ad-iframe': adIframe,
+      'ad-iframe': iframeValue,
     };
   }
 }

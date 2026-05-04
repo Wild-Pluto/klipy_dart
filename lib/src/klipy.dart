@@ -2,6 +2,7 @@ import 'package:klipy_dart/src/constants/constants.dart';
 import 'package:klipy_dart/src/http_client.dart';
 import 'package:klipy_dart/src/models/ad_request_context.dart';
 import 'package:klipy_dart/src/models/category_object.dart';
+import 'package:klipy_dart/src/models/feed_item.dart';
 import 'package:klipy_dart/src/models/response.dart';
 import 'package:klipy_dart/src/models/result_object.dart';
 import 'package:klipy_dart/src/utilities/utilities.dart';
@@ -58,6 +59,40 @@ class KlipyClient {
     return {'User-Agent': resolvedUserAgent};
   }
 
+  void _logRequestDiagnostics({
+    required KlipyEndpoint endpoint,
+    required Map<String, dynamic> queryParameters,
+    required Map<String, String>? headers,
+  }) {
+    final redactedParams = Map<String, dynamic>.from(queryParameters)
+      ..remove('key');
+    print(
+      '[KlipyClient] request endpoint=${endpoint.name} query=$redactedParams headers=${headers ?? {}}',
+    );
+  }
+
+  void _logResponseBreakdown(KlipyEndpoint endpoint, KlipyResponse? response) {
+    if (response == null) {
+      print('[KlipyClient] response endpoint=${endpoint.name} empty');
+      return;
+    }
+    var gifCount = 0;
+    var adCount = 0;
+    var unknownCount = 0;
+    for (final item in response.results) {
+      if (item is KlipyGifFeedItem) {
+        gifCount++;
+      } else if (item is KlipyAdFeedItem) {
+        adCount++;
+      } else {
+        unknownCount++;
+      }
+    }
+    print(
+      '[KlipyClient] response endpoint=${endpoint.name} count=${response.results.length} gif=$gifCount ad=$adCount unknown=$unknownCount next=${response.next}',
+    );
+  }
+
   /// Returns a `KlipyResponse` of current global featured GIFs, updated regularly throughout the day.
   ///
   /// Documentation: https://docs.klipy.com/migrate-from-tenor/features
@@ -76,14 +111,21 @@ class KlipyClient {
     String? requestUserAgent,
   }) async {
     final resolvedAdContext = adContext ?? adRequestContext;
-    // setup parameters
-    var parameters = ''.withQueryParams({
+    final headers = _buildRequestHeaders(requestUserAgent);
+    final queryParameters = <String, dynamic>{
       'key': apiKey,
       'country': country,
       'locale': locale,
       ...?resolvedAdContext?.toQueryParameters(),
-    });
-    return await _client.getGifs(
+    };
+    // setup parameters
+    var parameters = ''.withQueryParams(queryParameters);
+    _logRequestDiagnostics(
+      endpoint: KlipyEndpoint.featured,
+      queryParameters: queryParameters,
+      headers: headers,
+    );
+    final response = await _client.getGifs(
       KlipyEndpoint.featured,
       networkTimeout,
       parameters,
@@ -91,8 +133,10 @@ class KlipyClient {
       mediaFilter: mediaFilter,
       pos: pos,
       sticker: sticker,
-      headers: _buildRequestHeaders(requestUserAgent),
+      headers: headers,
     );
+    _logResponseBreakdown(KlipyEndpoint.featured, response);
+    return response;
   }
 
   /// Returns a `KlipyResponse` containing the most relevant GIFs based on your specific search terms, categories, or emoji inputs. You can use any combination of these filters.
@@ -117,15 +161,22 @@ class KlipyClient {
     // search can't be empty
     if (search.trim().isEmpty) return null;
     final resolvedAdContext = adContext ?? adRequestContext;
-    // setup parameters
-    var parameters = ''.withQueryParams({
+    final headers = _buildRequestHeaders(requestUserAgent);
+    final queryParameters = <String, dynamic>{
       'key': apiKey,
       'q': search,
       'country': country,
       'locale': locale,
       ...?resolvedAdContext?.toQueryParameters(),
-    });
-    return await _client.getGifs(
+    };
+    // setup parameters
+    var parameters = ''.withQueryParams(queryParameters);
+    _logRequestDiagnostics(
+      endpoint: KlipyEndpoint.search,
+      queryParameters: queryParameters,
+      headers: headers,
+    );
+    final response = await _client.getGifs(
       KlipyEndpoint.search,
       networkTimeout,
       parameters,
@@ -135,8 +186,10 @@ class KlipyClient {
       pos: pos,
       sticker: sticker,
       random: random,
-      headers: _buildRequestHeaders(requestUserAgent),
+      headers: headers,
     );
+    _logResponseBreakdown(KlipyEndpoint.search, response);
+    return response;
   }
 
   /// Returns a `List<String>` of alternative search terms related to the user's search.

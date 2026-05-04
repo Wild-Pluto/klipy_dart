@@ -16,15 +16,28 @@ class KlipyHttpClient {
 
   http.Client get _client => client ?? http.Client();
 
+  String _previewBody(String body) {
+    if (body.length <= 200) {
+      return body;
+    }
+    return '${body.substring(0, 200)}...';
+  }
+
   Future<Map<String, dynamic>> request(
     String url,
     Duration timeout, {
     Map<String, String>? headers,
   }) async {
     try {
-      final response = await _client
-          .get(Uri.parse(klipyApiUrl + url), headers: headers)
-          .timeout(timeout);
+      final uri = Uri.parse(klipyApiUrl + url);
+      print('[KlipyHttpClient] GET $uri');
+      final response =
+          await _client.get(uri, headers: headers).timeout(timeout);
+      if (response.statusCode != 200 && response.statusCode != 202) {
+        print(
+          '[KlipyHttpClient] non-200 status=${response.statusCode} body="${_previewBody(response.body)}"',
+        );
+      }
       // get json
       final Map<String, dynamic> json = jsonDecode(response.body);
 
