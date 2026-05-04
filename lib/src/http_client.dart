@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:developer' as developer;
 
 import 'package:http/http.dart' as http;
 import 'package:klipy_dart/klipy_dart.dart';
@@ -16,11 +17,31 @@ class KlipyHttpClient {
 
   http.Client get _client => client ?? http.Client();
 
+  void _logHttpRequest({
+    required Uri uri,
+    required Map<String, String>? headers,
+  }) {
+    final safeHeaders = <String, String>{...?headers};
+
+    if (safeHeaders.containsKey('x-api-key')) {
+      safeHeaders['x-api-key'] = '***';
+    }
+    if (safeHeaders.containsKey('authorization')) {
+      safeHeaders['authorization'] = '***';
+    }
+
+    developer.log(
+      '[KlipyHttp][request] uri=$uri headers=${jsonEncode(safeHeaders)}',
+      name: 'klipy.ads',
+    );
+    print('[klipy.ads] [KlipyHttp][request] uri=$uri headers=$safeHeaders');
+  }
+
   String _previewBody(String body) {
-    if (body.length <= 200) {
+    if (body.length <= 300) {
       return body;
     }
-    return '${body.substring(0, 200)}...';
+    return '${body.substring(0, 300)}...';
   }
 
   Future<Map<String, dynamic>> request(
@@ -30,12 +51,16 @@ class KlipyHttpClient {
   }) async {
     try {
       final uri = Uri.parse(klipyApiUrl + url);
-      print('[KlipyHttpClient] GET $uri');
+      _logHttpRequest(uri: uri, headers: headers);
       final response =
           await _client.get(uri, headers: headers).timeout(timeout);
       if (response.statusCode != 200 && response.statusCode != 202) {
+        developer.log(
+          '[KlipyHttp][response] statusCode=${response.statusCode} bodyPreview="${_previewBody(response.body)}"',
+          name: 'klipy.ads',
+        );
         print(
-          '[KlipyHttpClient] non-200 status=${response.statusCode} body="${_previewBody(response.body)}"',
+          '[klipy.ads] [KlipyHttp][response] statusCode=${response.statusCode} bodyPreview="${_previewBody(response.body)}"',
         );
       }
       // get json

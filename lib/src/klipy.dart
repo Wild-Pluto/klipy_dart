@@ -1,8 +1,9 @@
+import 'dart:developer' as developer;
+
 import 'package:klipy_dart/src/constants/constants.dart';
 import 'package:klipy_dart/src/http_client.dart';
 import 'package:klipy_dart/src/models/ad_request_context.dart';
 import 'package:klipy_dart/src/models/category_object.dart';
-import 'package:klipy_dart/src/models/feed_item.dart';
 import 'package:klipy_dart/src/models/response.dart';
 import 'package:klipy_dart/src/models/result_object.dart';
 import 'package:klipy_dart/src/utilities/utilities.dart';
@@ -59,37 +60,29 @@ class KlipyClient {
     return {'User-Agent': resolvedUserAgent};
   }
 
-  void _logRequestDiagnostics({
-    required KlipyEndpoint endpoint,
-    required Map<String, dynamic> queryParameters,
-    required Map<String, String>? headers,
-  }) {
-    final redactedParams = Map<String, dynamic>.from(queryParameters)
-      ..remove('key');
-    print(
-      '[KlipyClient] request endpoint=${endpoint.name} query=$redactedParams headers=${headers ?? {}}',
+  void _logQuery(String endpoint, Map<String, dynamic> query) {
+    final safe = Map<String, dynamic>.from(query);
+    if (safe.containsKey('api_key')) {
+      safe['api_key'] = '***';
+    }
+    if (safe.containsKey('key')) {
+      safe['key'] = '***';
+    }
+
+    developer.log(
+      '[KlipyHttp][query] endpoint=$endpoint query=$safe',
+      name: 'klipy.ads',
     );
+    print('[klipy.ads] [KlipyHttp][query] endpoint=$endpoint query=$safe');
   }
 
-  void _logResponseBreakdown(KlipyEndpoint endpoint, KlipyResponse? response) {
-    if (response == null) {
-      print('[KlipyClient] response endpoint=${endpoint.name} empty');
-      return;
-    }
-    var gifCount = 0;
-    var adCount = 0;
-    var unknownCount = 0;
-    for (final item in response.results) {
-      if (item is KlipyGifFeedItem) {
-        gifCount++;
-      } else if (item is KlipyAdFeedItem) {
-        adCount++;
-      } else {
-        unknownCount++;
-      }
-    }
+  void _logRequestHeaders(String endpoint, Map<String, String>? headers) {
+    developer.log(
+      '[KlipyHttp][headers] endpoint=$endpoint headers=${headers ?? {}}',
+      name: 'klipy.ads',
+    );
     print(
-      '[KlipyClient] response endpoint=${endpoint.name} count=${response.results.length} gif=$gifCount ad=$adCount unknown=$unknownCount next=${response.next}',
+      '[klipy.ads] [KlipyHttp][headers] endpoint=$endpoint headers=${headers ?? {}}',
     );
   }
 
@@ -120,11 +113,8 @@ class KlipyClient {
     };
     // setup parameters
     var parameters = ''.withQueryParams(queryParameters);
-    _logRequestDiagnostics(
-      endpoint: KlipyEndpoint.featured,
-      queryParameters: queryParameters,
-      headers: headers,
-    );
+    _logQuery('featured', queryParameters);
+    _logRequestHeaders('featured', headers);
     final response = await _client.getGifs(
       KlipyEndpoint.featured,
       networkTimeout,
@@ -135,7 +125,6 @@ class KlipyClient {
       sticker: sticker,
       headers: headers,
     );
-    _logResponseBreakdown(KlipyEndpoint.featured, response);
     return response;
   }
 
@@ -171,11 +160,8 @@ class KlipyClient {
     };
     // setup parameters
     var parameters = ''.withQueryParams(queryParameters);
-    _logRequestDiagnostics(
-      endpoint: KlipyEndpoint.search,
-      queryParameters: queryParameters,
-      headers: headers,
-    );
+    _logQuery('search', queryParameters);
+    _logRequestHeaders('search', headers);
     final response = await _client.getGifs(
       KlipyEndpoint.search,
       networkTimeout,
@@ -188,7 +174,6 @@ class KlipyClient {
       random: random,
       headers: headers,
     );
-    _logResponseBreakdown(KlipyEndpoint.search, response);
     return response;
   }
 
