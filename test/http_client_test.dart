@@ -14,6 +14,7 @@ void main() {
 
     setUpAll(() {
       registerFallbackValue(Uri());
+      registerFallbackValue(<String, String>{});
     });
 
     tearDown(() {
@@ -22,7 +23,9 @@ void main() {
 
     group('.request() >', () {
       test('successful', () async {
-        when(() => mockHttpClient.get(any())).thenAnswer((_) async {
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
           return Response('{"value":true}', 200);
         });
 
@@ -31,13 +34,17 @@ void main() {
           Duration(seconds: 2),
         );
 
-        verify(() => mockHttpClient.get(any())).called(1);
+        verify(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
 
         expect(response['value'], true);
       });
 
       test('failure - KlipyApiException', () async {
-        when(() => mockHttpClient.get(any())).thenAnswer((_) async {
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
           return Response('{"value":true}', 404);
         });
 
@@ -46,13 +53,17 @@ void main() {
           Duration(seconds: 2),
         );
 
-        verify(() => mockHttpClient.get(any())).called(1);
+        verify(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
 
         expectLater(response, throwsA(isA<KlipyApiException>()));
       });
 
       test('failure - KlipyNetworkException', () async {
-        when(() => mockHttpClient.get(any())).thenAnswer((_) async {
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
           await Future.delayed(Duration(seconds: 2));
           return Response('{"value":true}', 404);
         });
@@ -62,13 +73,17 @@ void main() {
           Duration(seconds: 1),
         );
 
-        verify(() => mockHttpClient.get(any())).called(1);
+        verify(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
 
         expectLater(response, throwsA(isA<KlipyNetworkException>()));
       });
 
       test('failure - ClientException', () async {
-        when(() => mockHttpClient.get(any())).thenAnswer((_) async {
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
           throw _ClientSocketException();
         });
 
@@ -77,14 +92,18 @@ void main() {
           Duration(seconds: 1),
         );
 
-        verify(() => mockHttpClient.get(any())).called(1);
+        verify(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
 
         expectLater(response, throwsA(isA<KlipyNetworkException>()));
       });
     });
     group('.getGifs() >', () {
       test('successful', () async {
-        when(() => mockHttpClient.get(any())).thenAnswer((_) async {
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
           return Response('{"results":[]}', 200);
         });
 
@@ -94,13 +113,17 @@ void main() {
           '',
         );
 
-        verify(() => mockHttpClient.get(any())).called(1);
+        verify(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
 
         expect(response, isNotNull);
       });
 
       test('path', () async {
-        when(() => mockHttpClient.get(any())).thenAnswer((_) async {
+        when(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).thenAnswer((_) async {
           return Response(
             """
             {
@@ -126,7 +149,9 @@ void main() {
           sticker: true,
         );
 
-        verify(() => mockHttpClient.get(any())).called(1);
+        verify(
+          () => mockHttpClient.get(any(), headers: any(named: 'headers')),
+        ).called(1);
 
         expect(response, isNotNull);
         expect(response?.aspectRatioRange, KlipyAspectRatioRange.standard);

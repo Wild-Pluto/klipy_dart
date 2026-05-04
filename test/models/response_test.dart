@@ -10,7 +10,7 @@ void main() {
   final testMediaFilter = [KlipyMediaFormat.gif];
   final testNext = '123456';
   final testParameters = 'apiKey=1234&country=US&locale=en_US';
-  final testResults = <KlipyResultObject>[];
+  final testResults = <KlipyFeedItem>[];
   final testDuration = const Duration(seconds: 10);
 
   setUpAll(() {
@@ -42,6 +42,7 @@ void main() {
           limit: any(named: 'limit'),
           mediaFilter: any(named: 'mediaFilter'),
           pos: any(named: 'pos'),
+          headers: any(named: 'headers'),
         ),
       ).thenAnswer((_) async {
         return response;
@@ -60,6 +61,7 @@ void main() {
           limit: any(named: 'limit'),
           mediaFilter: any(named: 'mediaFilter'),
           pos: any(named: 'pos'),
+          headers: any(named: 'headers'),
         )),
       ).called(1);
     });
@@ -104,7 +106,50 @@ void main() {
         'parameters': testParameters,
         'results': testResults,
         'timeout': testDuration.inMicroseconds,
+        'request_headers': null,
       });
+    });
+
+    test('parses mixed gif/ad/unknown feed items', () {
+      final response = KlipyResponse.fromJson({
+        'results': [
+          {
+            'id': 'gif-1',
+            'created': DateTime.now().millisecondsSinceEpoch.toDouble(),
+            'hasaudio': false,
+            'media_formats': {
+              'gif': {
+                'url': 'https://example.com/gif.gif',
+                'dims': [100, 100],
+                'duration': 1.0,
+                'size': 10,
+              },
+            },
+            'tags': const [],
+            'title': 'gif',
+            'content_description': 'gif',
+            'itemurl': 'https://example.com/item',
+            'hascaption': false,
+            'flags': const [],
+            'url': 'https://example.com',
+          },
+          {
+            'type': 'ad',
+            'content': '<html>ad</html>',
+            'width': 320,
+            'height': 50,
+          },
+          {
+            'type': 'mystery',
+            'value': true,
+          },
+        ],
+      });
+
+      expect(response.results.length, 3);
+      expect(response.results[0], isA<KlipyGifFeedItem>());
+      expect(response.results[1], isA<KlipyAdFeedItem>());
+      expect(response.results[2], isA<KlipyUnknownFeedItem>());
     });
   });
 }

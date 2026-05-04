@@ -43,6 +43,13 @@ class _MyHomePageState extends State<MyHomePage> {
   List<String?> searchSuggestionsResults = [];
   KlipyResultObject? randomGif;
 
+  List<KlipyResultObject> _gifItems(List<KlipyFeedItem> items) {
+    return items
+        .whereType<KlipyGifFeedItem>()
+        .map((item) => item.result)
+        .toList();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -62,7 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final searchResponse = await klipyClient.search('domino', limit: 5);
     if (searchResponse?.results.isNotEmpty ?? false) {
       setState(() {
-        searchResults = searchResponse!.results;
+        searchResults = _gifItems(searchResponse!.results);
       });
     }
     // fetch 5 more
@@ -70,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (searchResponseNext?.results.isNotEmpty ?? false) {
       setState(() {
         final clonedResults = [...searchResults];
-        clonedResults.addAll(searchResponseNext!.results);
+        clonedResults.addAll(_gifItems(searchResponseNext!.results));
         searchResults = clonedResults;
       });
     }
@@ -82,7 +89,8 @@ class _MyHomePageState extends State<MyHomePage> {
         await klipyClient.search('domino', limit: 1, random: true);
     if (randomResponse?.results.isNotEmpty ?? false) {
       setState(() {
-        randomGif = randomResponse!.results.first;
+        final gifItems = _gifItems(randomResponse!.results);
+        randomGif = gifItems.isEmpty ? null : gifItems.first;
       });
     }
 
@@ -92,7 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final featuredResponse = await klipyClient.featured(limit: 5);
     if (featuredResponse?.results.isNotEmpty ?? false) {
       setState(() {
-        featuredResults = featuredResponse!.results;
+        featuredResults = _gifItems(featuredResponse!.results);
       });
     }
     // fetch 5 more
@@ -100,7 +108,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (featuredNext?.results.isNotEmpty ?? false) {
       setState(() {
         final clonedResults = [...featuredResults];
-        clonedResults.addAll(featuredNext!.results);
+        clonedResults.addAll(_gifItems(featuredNext!.results));
         featuredResults = clonedResults;
       });
     }

@@ -1,5 +1,6 @@
 import 'package:klipy_dart/src/constants/constants.dart';
 import 'package:klipy_dart/src/http_client.dart';
+import 'package:klipy_dart/src/models/ad_request_context.dart';
 import 'package:klipy_dart/src/models/category_object.dart';
 import 'package:klipy_dart/src/models/response.dart';
 import 'package:klipy_dart/src/models/result_object.dart';
@@ -30,16 +31,32 @@ class KlipyClient {
   /// Mostly used for testing purposes.
   final KlipyHttpClient? client;
 
+  /// Default ads context for requests.
+  final KlipyAdRequestContext? adRequestContext;
+
+  /// Optional User-Agent value for KLIPY ad serving.
+  final String? userAgent;
+
   const KlipyClient({
     required this.apiKey,
     this.country = 'US',
     this.locale = 'en_US',
     this.networkTimeout = const Duration(seconds: 5),
     this.client,
+    this.adRequestContext,
+    this.userAgent,
   });
 
   // Shortcut for getting which client to use
   KlipyHttpClient get _client => client ?? KlipyHttpClient();
+
+  Map<String, String>? _buildRequestHeaders(String? requestUserAgent) {
+    final resolvedUserAgent = requestUserAgent ?? userAgent;
+    if (resolvedUserAgent == null || resolvedUserAgent.trim().isEmpty) {
+      return null;
+    }
+    return {'User-Agent': resolvedUserAgent};
+  }
 
   /// Returns a `KlipyResponse` of current global featured GIFs, updated regularly throughout the day.
   ///
@@ -55,12 +72,16 @@ class KlipyClient {
     List<String> mediaFilter = const [KlipyMediaFormat.tinyGif],
     bool sticker = false,
     String? pos,
+    KlipyAdRequestContext? adContext,
+    String? requestUserAgent,
   }) async {
+    final resolvedAdContext = adContext ?? adRequestContext;
     // setup parameters
     var parameters = ''.withQueryParams({
       'key': apiKey,
       'country': country,
       'locale': locale,
+      ...?resolvedAdContext?.toQueryParameters(),
     });
     return await _client.getGifs(
       KlipyEndpoint.featured,
@@ -70,6 +91,7 @@ class KlipyClient {
       mediaFilter: mediaFilter,
       pos: pos,
       sticker: sticker,
+      headers: _buildRequestHeaders(requestUserAgent),
     );
   }
 
@@ -89,15 +111,19 @@ class KlipyClient {
     String? pos,
     bool sticker = false,
     bool random = false,
+    KlipyAdRequestContext? adContext,
+    String? requestUserAgent,
   }) async {
     // search can't be empty
     if (search.trim().isEmpty) return null;
+    final resolvedAdContext = adContext ?? adRequestContext;
     // setup parameters
     var parameters = ''.withQueryParams({
       'key': apiKey,
       'q': search,
       'country': country,
       'locale': locale,
+      ...?resolvedAdContext?.toQueryParameters(),
     });
     return await _client.getGifs(
       KlipyEndpoint.search,
@@ -109,6 +135,7 @@ class KlipyClient {
       pos: pos,
       sticker: sticker,
       random: random,
+      headers: _buildRequestHeaders(requestUserAgent),
     );
   }
 

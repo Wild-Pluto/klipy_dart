@@ -16,10 +16,15 @@ class KlipyHttpClient {
 
   http.Client get _client => client ?? http.Client();
 
-  Future<Map<String, dynamic>> request(String url, Duration timeout) async {
+  Future<Map<String, dynamic>> request(
+    String url,
+    Duration timeout, {
+    Map<String, String>? headers,
+  }) async {
     try {
-      final response =
-          await _client.get(Uri.parse(klipyApiUrl + url)).timeout(timeout);
+      final response = await _client
+          .get(Uri.parse(klipyApiUrl + url), headers: headers)
+          .timeout(timeout);
       // get json
       final Map<String, dynamic> json = jsonDecode(response.body);
 
@@ -62,6 +67,7 @@ class KlipyHttpClient {
     String? pos,
     bool sticker = false,
     bool random = false,
+    Map<String, String>? headers,
   }) async {
     var path = endPoint.name + parameters;
 
@@ -84,7 +90,7 @@ class KlipyHttpClient {
       path += '&pos=$pos';
     }
 
-    var data = await request(path, timeout);
+    var data = await request(path, timeout, headers: headers);
     KlipyResponse? res;
     if (data.isNotEmpty) {
       res = KlipyResponse.fromJson(
@@ -92,6 +98,7 @@ class KlipyHttpClient {
           ...data,
           'endpoint': endPoint.name,
           'parameters': parameters,
+          'request_headers': headers,
         },
       );
     }

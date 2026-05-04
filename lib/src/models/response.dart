@@ -1,37 +1,34 @@
 import 'dart:convert';
 
-import 'package:json_annotation/json_annotation.dart';
 import 'package:klipy_dart/src/constants/constants.dart';
 import 'package:klipy_dart/src/models/models.dart';
 import 'package:klipy_dart/src/http_client.dart';
 
-part 'response.g.dart';
-
 /// Based on [category response object](https://developers.google.com/tenor/guides/response-objects-and-errors#category-object) from the Tenor API.
-@JsonSerializable(explicitToJson: true)
 class KlipyResponse {
   static const _encoder = JsonEncoder.withIndent('  ');
 
-  @JsonKey(name: 'results')
-  final List<KlipyResultObject> results;
+  static KlipyEndpoint? _endpointFromJson(dynamic endpointValue) {
+    final endpointName = endpointValue?.toString();
+    if (endpointName == null) {
+      return null;
+    }
+    for (final endpoint in KlipyEndpoint.values) {
+      if (endpoint.name == endpointName) {
+        return endpoint;
+      }
+    }
+    return null;
+  }
 
-  @JsonKey(name: 'aspect_ratio_range')
+  final List<KlipyFeedItem> results;
   final KlipyAspectRatioRange aspectRatioRange;
-
-  @JsonKey(name: 'endpoint')
   final KlipyEndpoint? endpoint;
-
-  @JsonKey(name: 'media_filter')
   final List<String>? mediaFilter;
-
-  @JsonKey(name: 'next')
   final String? next;
-
-  @JsonKey(name: 'parameters')
   final String? parameters;
-
-  @JsonKey(name: 'timeout')
   final Duration timeout;
+  final Map<String, String>? requestHeaders;
 
   KlipyResponse({
     required this.results,
@@ -41,12 +38,48 @@ class KlipyResponse {
     this.next,
     this.parameters,
     this.timeout = const Duration(seconds: 5),
+    this.requestHeaders,
   });
 
-  factory KlipyResponse.fromJson(Map<String, dynamic> json) =>
-      _$KlipyResponseFromJson(json);
+  factory KlipyResponse.fromJson(Map<String, dynamic> json) {
+    final rawResults = (json['results'] as List<dynamic>? ?? const []);
+    return KlipyResponse(
+      results: rawResults
+          .whereType<Map<String, dynamic>>()
+          .map(KlipyFeedItem.fromJson)
+          .toList(),
+      aspectRatioRange: KlipyAspectRatioRange.values.firstWhere(
+        (value) => value.name == json['aspect_ratio_range'],
+        orElse: () => KlipyAspectRatioRange.all,
+      ),
+      endpoint: _endpointFromJson(json['endpoint']),
+      mediaFilter: (json['media_filter'] as List<dynamic>?)
+              ?.map((value) => value.toString())
+              .toList() ??
+          const [KlipyMediaFormat.tinyGif],
+      next: json['next']?.toString(),
+      parameters: json['parameters']?.toString(),
+      timeout: json['timeout'] == null
+          ? const Duration(seconds: 5)
+          : Duration(microseconds: (json['timeout'] as num).toInt()),
+      requestHeaders: (json['request_headers'] as Map?)?.map(
+        (key, value) => MapEntry(key.toString(), value.toString()),
+      ),
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$KlipyResponseToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'results': results.map((result) => result.toJson()).toList(),
+      'aspect_ratio_range': aspectRatioRange.name,
+      'endpoint': endpoint?.name,
+      'media_filter': mediaFilter,
+      'next': next,
+      'parameters': parameters,
+      'timeout': timeout.inMicroseconds,
+      'request_headers': requestHeaders,
+    };
+  }
 
   // TODO look into sticker and random on fetchNext
   Future<KlipyResponse?> fetchNext({
@@ -61,6 +94,7 @@ class KlipyResponse {
       limit: limit,
       mediaFilter: mediaFilter,
       pos: next,
+      headers: requestHeaders,
     );
   }
 
