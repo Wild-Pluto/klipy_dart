@@ -62,18 +62,87 @@ class KlipyResponse {
     };
   }
 
+  static Map<String, dynamic>? _extractV1MediaEntry(
+    Map<String, dynamic> file,
+    String size,
+    String format,
+  ) {
+    final sizeMap = _asStringDynamicMap(file[size]);
+    if (sizeMap == null) {
+      return null;
+    }
+    final formatMap = _asStringDynamicMap(sizeMap[format]);
+    if (formatMap == null) {
+      return null;
+    }
+    final url = formatMap['url']?.toString();
+    if (url == null || url.isEmpty) {
+      return null;
+    }
+    return {
+      'url': url,
+      'width': (formatMap['width'] as num?)?.toInt() ?? 1,
+      'height': (formatMap['height'] as num?)?.toInt() ?? 1,
+      'size': (formatMap['size'] as num?)?.toInt() ?? 0,
+    };
+  }
+
+  static Map<String, dynamic>? _firstNonNull(
+    List<Map<String, dynamic>?> items,
+  ) {
+    for (final item in items) {
+      if (item != null) {
+        return item;
+      }
+    }
+    return null;
+  }
+
   static Map<String, dynamic> _normalizeV1Gif(Map<String, dynamic> item) {
     final file = _asStringDynamicMap(item['file']) ?? const {};
-    final url = file['url']?.toString() ??
+
+    // v1 file structure: file.{hd|md|sm|xs}.{gif|webp|jpg|mp4|webm}.{url,width,height,size}
+    final hdGif = _extractV1MediaEntry(file, 'hd', 'gif');
+    final mdGif = _extractV1MediaEntry(file, 'md', 'gif');
+    final smGif = _extractV1MediaEntry(file, 'sm', 'gif');
+    final xsGif = _extractV1MediaEntry(file, 'xs', 'gif');
+    final xsJpg = _extractV1MediaEntry(file, 'xs', 'jpg');
+
+    final hdMp4 = _extractV1MediaEntry(file, 'hd', 'mp4');
+    final smMp4 = _extractV1MediaEntry(file, 'sm', 'mp4');
+    final hdWebm = _extractV1MediaEntry(file, 'hd', 'webm');
+
+    final fullGif = _firstNonNull([hdGif, mdGif, smGif, xsGif]);
+    final mediumGif = _firstNonNull([mdGif, hdGif, smGif, xsGif]);
+    final tinyGif = _firstNonNull([smGif, mdGif, xsGif, hdGif]);
+    final nanoGif = _firstNonNull([xsGif, smGif, mdGif, hdGif]);
+    final preview = _firstNonNull([xsJpg, xsGif, smGif, mdGif, hdGif]);
+
+    // Fallback for legacy / unexpected payloads
+    final legacyUrl = file['url']?.toString() ??
         item['url']?.toString() ??
-        item['src']?.toString() ??
+        item['src']?.toString();
+    final legacyWidth = (file['width'] as num?)?.toInt();
+    final legacyHeight = (file['height'] as num?)?.toInt();
+    final legacySize = (file['size'] as num?)?.toInt();
+
+    final url = (tinyGif?['url'] as String?) ??
+        (fullGif?['url'] as String?) ??
+        legacyUrl ??
         '';
-    final previewUrl = file['preview_url']?.toString() ??
-        file['thumbnail_url']?.toString() ??
-        url;
-    final width = (file['width'] as num?)?.toInt() ?? 1;
-    final height = (file['height'] as num?)?.toInt() ?? 1;
-    final size = (file['size'] as num?)?.toInt() ?? 0;
+    final width = (tinyGif?['width'] as int?) ??
+        legacyWidth ??
+        (fullGif?['width'] as int?) ??
+        1;
+    final height = (tinyGif?['height'] as int?) ??
+        legacyHeight ??
+        (fullGif?['height'] as int?) ??
+        1;
+    final size = (tinyGif?['size'] as int?) ??
+        legacySize ??
+        (fullGif?['size'] as int?) ??
+        0;
+
     final slug = item['slug']?.toString() ?? item['id']?.toString() ?? '';
     final title = item['title']?.toString() ?? slug;
     final description = item['description']?.toString() ??
@@ -88,24 +157,70 @@ class KlipyResponse {
       'created': _createdAtToTimestamp(item['created_at'] ?? item['created']),
       'hasaudio': item['hasaudio'] == true || item['has_audio'] == true,
       'media_formats': {
-        KlipyMediaFormat.gif: _buildMediaObject(
-          url: url,
-          width: width,
-          height: height,
-          size: size,
-        ),
-        KlipyMediaFormat.tinyGif: _buildMediaObject(
-          url: url,
-          width: width,
-          height: height,
-          size: size,
-        ),
-        KlipyMediaFormat.preview: _buildMediaObject(
-          url: previewUrl,
-          width: width,
-          height: height,
-          size: size,
-        ),
+        if (fullGif != null)
+          KlipyMediaFormat.gif: _buildMediaObject(
+            url: fullGif['url'] as String,
+            width: fullGif['width'] as int,
+            height: fullGif['height'] as int,
+            size: fullGif['size'] as int,
+          ),
+        if (mediumGif != null)
+          KlipyMediaFormat.mediumGif: _buildMediaObject(
+            url: mediumGif['url'] as String,
+            width: mediumGif['width'] as int,
+            height: mediumGif['height'] as int,
+            size: mediumGif['size'] as int,
+          ),
+        if (tinyGif != null)
+          KlipyMediaFormat.tinyGif: _buildMediaObject(
+            url: tinyGif['url'] as String,
+            width: tinyGif['width'] as int,
+            height: tinyGif['height'] as int,
+            size: tinyGif['size'] as int,
+          ),
+        if (nanoGif != null)
+          KlipyMediaFormat.nanoGif: _buildMediaObject(
+            url: nanoGif['url'] as String,
+            width: nanoGif['width'] as int,
+            height: nanoGif['height'] as int,
+            size: nanoGif['size'] as int,
+          ),
+        if (preview != null)
+          KlipyMediaFormat.preview: _buildMediaObject(
+            url: preview['url'] as String,
+            width: preview['width'] as int,
+            height: preview['height'] as int,
+            size: preview['size'] as int,
+          ),
+        if (hdMp4 != null)
+          KlipyMediaFormat.mp4: _buildMediaObject(
+            url: hdMp4['url'] as String,
+            width: hdMp4['width'] as int,
+            height: hdMp4['height'] as int,
+            size: hdMp4['size'] as int,
+          ),
+        if (smMp4 != null)
+          KlipyMediaFormat.tinyMp4: _buildMediaObject(
+            url: smMp4['url'] as String,
+            width: smMp4['width'] as int,
+            height: smMp4['height'] as int,
+            size: smMp4['size'] as int,
+          ),
+        if (hdWebm != null)
+          KlipyMediaFormat.webm: _buildMediaObject(
+            url: hdWebm['url'] as String,
+            width: hdWebm['width'] as int,
+            height: hdWebm['height'] as int,
+            size: hdWebm['size'] as int,
+          ),
+        // absolute fallback to avoid empty UI cells
+        if (tinyGif == null && url.isNotEmpty)
+          KlipyMediaFormat.tinyGif: _buildMediaObject(
+            url: url,
+            width: width,
+            height: height,
+            size: size,
+          ),
       },
       'tags': tags,
       'title': title,

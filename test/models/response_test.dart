@@ -154,5 +154,85 @@ void main() {
       expect(response.results[1], isA<KlipyAdFeedItem>());
       expect(response.results[2], isA<KlipyUnknownFeedItem>());
     });
+
+    test('parses v1 nested file structure into media_formats', () {
+      final response = KlipyResponse.fromJson({
+        'data': {
+          'data': [
+            {
+              'slug': 'funny-cat-abc123',
+              'title': 'Funny Cat',
+              'file': {
+                'hd': {
+                  'gif': {
+                    'url': 'https://cdn.klipy.com/hd.gif',
+                    'width': 498,
+                    'height': 498,
+                    'size': 4001918,
+                  },
+                  'mp4': {
+                    'url': 'https://cdn.klipy.com/hd.mp4',
+                    'width': 498,
+                    'height': 498,
+                    'size': 100000,
+                  },
+                },
+                'md': {
+                  'gif': {
+                    'url': 'https://cdn.klipy.com/md.gif',
+                    'width': 320,
+                    'height': 320,
+                    'size': 1500000,
+                  },
+                },
+                'sm': {
+                  'gif': {
+                    'url': 'https://cdn.klipy.com/sm.gif',
+                    'width': 220,
+                    'height': 220,
+                    'size': 314884,
+                  },
+                  'mp4': {
+                    'url': 'https://cdn.klipy.com/sm.mp4',
+                    'width': 220,
+                    'height': 220,
+                    'size': 50000,
+                  },
+                },
+                'xs': {
+                  'gif': {
+                    'url': 'https://cdn.klipy.com/xs.gif',
+                    'width': 90,
+                    'height': 90,
+                    'size': 71468,
+                  },
+                  'jpg': {
+                    'url': 'https://cdn.klipy.com/xs.jpg',
+                    'width': 90,
+                    'height': 90,
+                    'size': 5000,
+                  },
+                },
+              },
+              'tags': ['funny', 'cat'],
+            },
+          ],
+          'current_page': 1,
+          'has_next': false,
+        },
+      });
+
+      expect(response.results.length, 1);
+      final item = response.results.first as KlipyGifFeedItem;
+      expect(item.result.id, 'funny-cat-abc123');
+
+      final tinyGif = item.result.media.tinyGif;
+      expect(tinyGif, isNotNull);
+      expect(tinyGif!.url, 'https://cdn.klipy.com/sm.gif');
+
+      final preview = item.result.media.preview;
+      expect(preview, isNotNull);
+      expect(preview!.url, 'https://cdn.klipy.com/xs.jpg');
+    });
   });
 }
