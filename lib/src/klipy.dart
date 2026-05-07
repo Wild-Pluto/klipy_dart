@@ -52,6 +52,8 @@ class KlipyClient {
   // Shortcut for getting which client to use
   KlipyHttpClient get _client => client ?? KlipyHttpClient();
 
+  String _withAppKeyPath(String endpoint) => '$apiKey/$endpoint';
+
   Map<String, String>? _buildRequestHeaders(String? requestUserAgent) {
     final resolvedUserAgent = requestUserAgent ?? userAgent;
     if (resolvedUserAgent == null || resolvedUserAgent.trim().isEmpty) {
@@ -67,6 +69,9 @@ class KlipyClient {
     }
     if (safe.containsKey('key')) {
       safe['key'] = '***';
+    }
+    if (safe.containsKey('app_key')) {
+      safe['app_key'] = '***';
     }
 
     developer.log(
@@ -105,10 +110,11 @@ class KlipyClient {
   }) async {
     final resolvedAdContext = adContext ?? adRequestContext;
     final headers = _buildRequestHeaders(requestUserAgent);
+    final page = int.tryParse(pos ?? '1') ?? 1;
     final queryParameters = <String, dynamic>{
-      'key': apiKey,
-      'country': country,
       'locale': locale,
+      'page': page < 1 ? 1 : page,
+      'per_page': limit.clamp(8, 50),
       ...?resolvedAdContext?.toQueryParameters(),
     };
     // setup parameters
@@ -119,6 +125,7 @@ class KlipyClient {
       KlipyEndpoint.featured,
       networkTimeout,
       parameters,
+      appKey: apiKey,
       limit: limit,
       mediaFilter: mediaFilter,
       pos: pos,
@@ -151,11 +158,12 @@ class KlipyClient {
     if (search.trim().isEmpty) return null;
     final resolvedAdContext = adContext ?? adRequestContext;
     final headers = _buildRequestHeaders(requestUserAgent);
+    final page = int.tryParse(pos ?? '1') ?? 1;
     final queryParameters = <String, dynamic>{
-      'key': apiKey,
       'q': search,
-      'country': country,
       'locale': locale,
+      'page': page < 1 ? 1 : page,
+      'per_page': limit.clamp(8, 50),
       ...?resolvedAdContext?.toQueryParameters(),
     };
     // setup parameters
@@ -166,6 +174,7 @@ class KlipyClient {
       KlipyEndpoint.search,
       networkTimeout,
       parameters,
+      appKey: apiKey,
       limit: limit,
       aspectRatioRange: aspectRatioRange,
       mediaFilter: mediaFilter,
@@ -195,12 +204,12 @@ class KlipyClient {
     if (search.trim().isEmpty) return [];
     // setup path
     var path = KlipyEndpoint.search_suggestions.name.withQueryParams({
-      'key': apiKey,
       'q': search,
       'country': country,
       'locale': locale,
       'limit': limit.clamp(1, 50),
     });
+    path = _withAppKeyPath(path);
     // send request
     var response = await _client.request(path, networkTimeout);
     // return empty
@@ -224,11 +233,11 @@ class KlipyClient {
   }) async {
     // setup path
     var path = KlipyEndpoint.trending_terms.name.withQueryParams({
-      'key': apiKey,
       'country': country,
       'locale': locale,
       'limit': limit.clamp(1, 50),
     });
+    path = _withAppKeyPath(path);
     // send request
     var response = await _client.request(path, networkTimeout);
     // return empty
@@ -255,12 +264,12 @@ class KlipyClient {
     if (search.trim().isEmpty) return [];
     // setup path
     var path = KlipyEndpoint.autocomplete.name.withQueryParams({
-      'key': apiKey,
       'q': search,
       'country': country,
       'locale': locale,
       'limit': limit.clamp(1, 50),
     });
+    path = _withAppKeyPath(path);
     // send request
     var response = await _client.request(path, networkTimeout);
     // return empty
@@ -285,21 +294,34 @@ class KlipyClient {
     KlipyCategoryType categoryType = KlipyCategoryType.featured,
   }) async {
     // setup path
-    var path = KlipyEndpoint.categories.name.withQueryParams({
-      'key': apiKey,
-      'country': country,
-      'locale': locale,
-      'type': categoryType.name,
-    });
+    var path = _withAppKeyPath(
+      'gifs/categories'.withQueryParams({
+        'locale': locale,
+      }),
+    );
     // ask for data
     var data = await _client.request(path, networkTimeout);
     // form list of categories
     var list = <KlipyCategoryObject>[];
-
-    if (data['tags'] != null) {
-      data['tags'].forEach((tag) {
-        list.add(KlipyCategoryObject.fromJson(tag));
-      });
+    final rawCategories = (data['data']?['data'] as List<dynamic>?) ??
+        (data['data'] as List<dynamic>?) ??
+        (data['tags'] as List<dynamic>?) ??
+        const [];
+    for (final tag in rawCategories) {
+      if (tag is! Map<String, dynamic>) {
+        continue;
+      }
+      list.add(
+        KlipyCategoryObject(
+          searchTerm: tag['searchterm']?.toString() ??
+              tag['search_term']?.toString() ??
+              tag['name']?.toString() ??
+              '',
+          path: tag['path']?.toString() ?? tag['slug']?.toString() ?? '',
+          image: tag['image']?.toString() ?? tag['thumbnail']?.toString() ?? '',
+          name: tag['name']?.toString() ?? '',
+        ),
+      );
     }
     return list;
   }
@@ -318,18 +340,19 @@ class KlipyClient {
     /// The search string that leads to this share.
     String? search,
   }) async {
-    // setup path
-    var path = KlipyEndpoint.registershare.name.withQueryParams({
-      'key': apiKey,
-      'id': id,
-      'country': country,
-      'locale': locale,
-      'q': search,
-    });
-
-    var result = await _client.request(path, networkTimeout);
-    if (result.isNotEmpty &&
-        result['status']?.toString().toLowerCase() == 'ok') {
+    final path = _withAppKeyPath('gifs/share/$id');
+    final result = await _client.request(
+      path,
+      networkTimeout,
+      method: 'POST',
+      body: {
+        'customer_id': adRequestContext?.customerId,
+        'q': search,
+      },
+    );
+    final status = result['status']?.toString().toLowerCase();
+    final isSuccess = result['result'] == true || status == 'ok';
+    if (result.isNotEmpty && isSuccess) {
       return true;
     }
     return false;
@@ -348,19 +371,23 @@ class KlipyClient {
     List<String> mediaFilter = const [KlipyMediaFormat.tinyGif],
   }) async {
     // setup path
-    var path = KlipyEndpoint.posts.name.withQueryParams({
-      'key': apiKey,
+    var path = 'gifs/items'.withQueryParams({
       'ids': ids.join(','),
-      'media_filter': mediaFilter.join(','),
+      'format_filter': mediaFilter.join(','),
     });
+    path = _withAppKeyPath(path);
     // ask for data
     var data = await _client.request(path, networkTimeout);
     // form list of categories
     var list = <KlipyResultObject>[];
-    if (data['results'] != null) {
-      data['results'].forEach((post) {
+    final rawResults = (data['data']?['data'] as List<dynamic>?) ??
+        (data['data'] as List<dynamic>?) ??
+        (data['results'] as List<dynamic>?) ??
+        const [];
+    for (final post in rawResults) {
+      if (post is Map<String, dynamic>) {
         list.add(KlipyResultObject.fromJson(post));
-      });
+      }
     }
     return list;
   }

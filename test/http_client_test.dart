@@ -111,6 +111,7 @@ void main() {
           KlipyEndpoint.featured,
           Duration(seconds: 2),
           '',
+          appKey: '12345',
         );
 
         verify(
@@ -142,6 +143,7 @@ void main() {
           KlipyEndpoint.featured,
           Duration(seconds: 2),
           '?key=1234',
+          appKey: '12345',
           aspectRatioRange: KlipyAspectRatioRange.standard,
           mediaFilter: [KlipyMediaFormat.tinyMp4],
           pos: 'abcd',

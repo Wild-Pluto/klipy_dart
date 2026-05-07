@@ -13,6 +13,10 @@ void main() {
     setUpAll(() {
       registerFallbackValue(KlipyEndpoint.featured);
       registerFallbackValue(Duration.zero);
+      registerFallbackValue(<String, dynamic>{});
+      registerFallbackValue(<String, String>{});
+      registerFallbackValue(<String, Object?>{});
+      registerFallbackValue('POST');
     });
 
     tearDown(() {
@@ -29,6 +33,7 @@ void main() {
             any(),
             any(),
             any(),
+            appKey: any(named: 'appKey'),
             aspectRatioRange: any(named: 'aspectRatioRange'),
             limit: any(named: 'limit'),
             mediaFilter: any(named: 'mediaFilter'),
@@ -47,6 +52,7 @@ void main() {
             any(),
             any(),
             any(),
+            appKey: any(named: 'appKey'),
             aspectRatioRange: any(named: 'aspectRatioRange'),
             limit: any(named: 'limit'),
             mediaFilter: any(named: 'mediaFilter'),
@@ -68,6 +74,7 @@ void main() {
             any(),
             any(),
             any(),
+            appKey: any(named: 'appKey'),
             aspectRatioRange: any(named: 'aspectRatioRange'),
             limit: any(named: 'limit'),
             mediaFilter: any(named: 'mediaFilter'),
@@ -84,6 +91,7 @@ void main() {
             any(),
             any(),
             any(),
+            appKey: any(named: 'appKey'),
             aspectRatioRange: any(named: 'aspectRatioRange'),
             limit: any(named: 'limit'),
             mediaFilter: any(named: 'mediaFilter'),
@@ -105,6 +113,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -118,6 +129,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -129,6 +143,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -142,6 +159,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -152,6 +172,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -165,6 +188,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -176,6 +202,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {};
@@ -187,6 +215,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -200,6 +230,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -213,6 +245,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -223,6 +257,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -236,6 +272,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -246,6 +284,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {};
@@ -257,6 +297,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -274,6 +316,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -287,6 +331,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -297,6 +343,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -310,6 +358,8 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -422,6 +472,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -435,6 +488,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -445,6 +501,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {
@@ -458,6 +517,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 
@@ -468,6 +530,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).thenAnswer((_) async {
           return {};
@@ -479,6 +544,9 @@ void main() {
           () => mockKlipyHttpClient.request(
             any(),
             any(),
+            headers: any(named: 'headers'),
+            method: any(named: 'method'),
+            body: any(named: 'body'),
           ),
         ).called(1);
 

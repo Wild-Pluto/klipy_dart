@@ -17,6 +17,26 @@ class KlipyHttpClient {
 
   http.Client get _client => client ?? http.Client();
 
+  String _resolveFeedEndpointPath(KlipyEndpoint endpoint, bool sticker) {
+    final basePath = sticker ? 'stickers' : 'gifs';
+    if (endpoint == KlipyEndpoint.featured) {
+      return '$basePath/trending';
+    }
+    return '$basePath/search';
+  }
+
+  String _redactUri(Uri uri) {
+    final segments = uri.pathSegments.toList();
+    final apiIndex = segments.indexOf('api');
+    if (apiIndex != -1 &&
+        apiIndex + 2 < segments.length &&
+        segments[apiIndex + 1] == 'v1') {
+      segments[apiIndex + 2] = '***';
+      return uri.replace(pathSegments: segments).toString();
+    }
+    return uri.toString();
+  }
+
   void _logHttpRequest({
     required Uri uri,
     required Map<String, String>? headers,
@@ -31,10 +51,12 @@ class KlipyHttpClient {
     }
 
     developer.log(
-      '[KlipyHttp][request] uri=$uri headers=${jsonEncode(safeHeaders)}',
+      '[KlipyHttp][request] uri=${_redactUri(uri)} headers=${jsonEncode(safeHeaders)}',
       name: 'klipy.ads',
     );
-    print('[klipy.ads] [KlipyHttp][request] uri=$uri headers=$safeHeaders');
+    print(
+      '[klipy.ads] [KlipyHttp][request] uri=${_redactUri(uri)} headers=$safeHeaders',
+    );
   }
 
   String _previewBody(String body) {
@@ -48,12 +70,29 @@ class KlipyHttpClient {
     String url,
     Duration timeout, {
     Map<String, String>? headers,
+    String method = 'GET',
+    Map<String, dynamic>? body,
   }) async {
     try {
       final uri = Uri.parse(klipyApiUrl + url);
       _logHttpRequest(uri: uri, headers: headers);
-      final response =
-          await _client.get(uri, headers: headers).timeout(timeout);
+      late final http.Response response;
+      if (method == 'POST') {
+        response = await _client
+            .post(
+              uri,
+              headers: {
+                ...?headers,
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(body ?? <String, dynamic>{}),
+            )
+            .timeout(timeout);
+      } else if (method == 'DELETE') {
+        response = await _client.delete(uri, headers: headers).timeout(timeout);
+      } else {
+        response = await _client.get(uri, headers: headers).timeout(timeout);
+      }
       if (response.statusCode != 200 && response.statusCode != 202) {
         developer.log(
           '[KlipyHttp][response] statusCode=${response.statusCode} bodyPreview="${_previewBody(response.body)}"',
@@ -99,6 +138,7 @@ class KlipyHttpClient {
     KlipyEndpoint endPoint,
     Duration timeout,
     String parameters, {
+    required String appKey,
     int limit = 1,
     KlipyAspectRatioRange? aspectRatioRange,
     List<String>? mediaFilter,
@@ -107,25 +147,26 @@ class KlipyHttpClient {
     bool random = false,
     Map<String, String>? headers,
   }) async {
-    var path = endPoint.name + parameters;
-
-    path += '&limit=${limit.clamp(1, 50)}';
-
-    if (sticker) {
-      path += '&searchfilter=sticker';
+    final endpointPath = _resolveFeedEndpointPath(endPoint, sticker);
+    var path = '$appKey/$endpointPath$parameters';
+    final separator = path.contains('?') ? '&' : '?';
+    if (!path.contains('per_page=')) {
+      path += '${separator}per_page=${limit.clamp(8, 50)}';
     }
-    // TODO this is currently broken in the Klipy API
-    // if (random) {
-    // path += '&random=$random';
-    // }
-    if (mediaFilter != null) {
-      path += '&media_filter=${mediaFilter.join(',')}';
+    if (!path.contains('page=')) {
+      final page = int.tryParse(pos ?? '1') ?? 1;
+      path += '&page=${page < 1 ? 1 : page}';
     }
-    if (aspectRatioRange != null) {
+    if (mediaFilter != null &&
+        mediaFilter.isNotEmpty &&
+        !path.contains('format_filter=')) {
+      path += '&format_filter=${mediaFilter.join(',')}';
+    }
+    if (aspectRatioRange != null && !path.contains('ar_range=')) {
       path += '&ar_range=${aspectRatioRange.name}';
     }
-    if (pos != null) {
-      path += '&pos=$pos';
+    if (random && !path.contains('random=')) {
+      path += '&random=true';
     }
 
     var data = await request(path, timeout, headers: headers);
@@ -137,6 +178,7 @@ class KlipyHttpClient {
           'endpoint': endPoint.name,
           'parameters': parameters,
           'request_headers': headers,
+          'app_key': appKey,
         },
       );
     }

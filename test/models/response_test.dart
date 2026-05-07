@@ -38,6 +38,7 @@ void main() {
           any(),
           any(),
           any(),
+          appKey: any(named: 'appKey'),
           aspectRatioRange: any(named: 'aspectRatioRange'),
           limit: any(named: 'limit'),
           mediaFilter: any(named: 'mediaFilter'),
@@ -57,6 +58,7 @@ void main() {
           any(),
           any(),
           any(),
+          appKey: any(named: 'appKey'),
           aspectRatioRange: any(named: 'aspectRatioRange'),
           limit: any(named: 'limit'),
           mediaFilter: any(named: 'mediaFilter'),
@@ -107,6 +109,7 @@ void main() {
         'results': testResults,
         'timeout': testDuration.inMicroseconds,
         'request_headers': null,
+        'app_key': null,
       });
     });
 
